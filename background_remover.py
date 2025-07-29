@@ -6,13 +6,13 @@ from torchvision import transforms
 
 class BackgroundRemover:
     def __init__(self):
-        """Inicializa o modelo RMBG-1.4 da BriaAI"""
+        """Initialize the RMBG-1.4 model from BriaAI for Background Free"""
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_name = "briaai/RMBG-1.4"
         
-        print(f"Carregando modelo {self.model_name} no dispositivo: {self.device}")
+        print(f"Loading model {self.model_name} on device: {self.device}")
         
-        # Carregar o modelo e o processador
+        # Load the model and processor
         self.model = AutoModelForImageSegmentation.from_pretrained(
             self.model_name,
             trust_remote_code=True
@@ -22,50 +22,50 @@ class BackgroundRemover:
             trust_remote_code=True
         )
         
-        # Mover modelo para o dispositivo apropriado
+        # Move model to appropriate device
         self.model.to(self.device)
         self.model.eval()
         
-        print("Modelo carregado com sucesso!")
+        print("Model loaded successfully!")
     
     def remove_background(self, image: Image.Image) -> Image.Image:
         """
-        Remove o background de uma imagem
+        Remove the background from an image
         
         Args:
-            image: Imagem PIL em formato RGB
+            image: PIL Image in RGB format
             
         Returns:
-            Imagem PIL com background removido (RGBA)
+            PIL Image with removed background (RGBA)
         """
-        # Preprocessar a imagem
+        # Preprocess the image
         inputs = self.processor(image, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         
-        # Fazer a predição
+        # Make prediction
         with torch.no_grad():
             predictions = self.model(**inputs)
         
-        # Processar a máscara de saída
+        # Process output mask
         mask = predictions.logits
         mask = torch.sigmoid(mask)
         mask = mask.cpu().numpy().squeeze()
         
-        # Redimensionar a máscara para o tamanho original da imagem
+        # Resize mask to original image size
         mask = Image.fromarray((mask * 255).astype(np.uint8))
         mask = mask.resize(image.size, Image.LANCZOS)
         
-        # Aplicar a máscara à imagem original
-        # Converter imagem para RGBA
+        # Apply mask to original image
+        # Convert image to RGBA
         image_rgba = image.convert("RGBA")
         
-        # Aplicar a máscara como canal alpha
+        # Apply mask as alpha channel
         image_rgba.putalpha(mask)
         
         return image_rgba
     
     def __del__(self):
-        """Limpar recursos quando o objeto é destruído"""
+        """Clean up resources when the object is destroyed"""
         if hasattr(self, 'model'):
             del self.model
         if torch.cuda.is_available():

@@ -5,11 +5,11 @@ import io
 from PIL import Image
 from background_remover import BackgroundRemover
 
-# Inicializar a aplicação FastAPI sem documentação
+# Initialize FastAPI application without documentation
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-# CORS - desabilitado por padrão, mas pronto para configuração
-# Descomente as linhas abaixo se precisar habilitar CORS
+# CORS - disabled by default, but ready for configuration
+# Uncomment the lines below if you need to enable CORS
 """
 app.add_middleware(
     CORSMiddleware,
@@ -20,45 +20,45 @@ app.add_middleware(
 )
 """
 
-# Inicializar o removedor de background
+# Initialize the background remover
 bg_remover = BackgroundRemover()
 
 @app.get("/ping")
 async def ping():
-    """Endpoint de health check"""
-    return {"status": "ok", "message": "Background Remover API is running"}
+    """Health check endpoint"""
+    return {"status": "ok", "message": "Background Free API is running"}
 
 @app.post("/remove-background")
 async def remove_background(file: UploadFile = File(...)):
     """
-    Remove o background de uma imagem
+    Remove the background from an image
     
     Args:
-        file: Arquivo de imagem (PNG, JPG, JPEG)
+        file: Image file (PNG, JPG, JPEG)
     
     Returns:
-        Imagem com background removido em formato PNG
+        Image with removed background in PNG format
     """
-    # Verificar se o arquivo é uma imagem
+    # Verify if the file is an image
     if not file.content_type.startswith('image/'):
         raise HTTPException(
             status_code=400, 
-            detail="Arquivo deve ser uma imagem (PNG, JPG, JPEG)"
+            detail="File must be an image (PNG, JPG, JPEG)"
         )
     
     try:
-        # Ler a imagem do arquivo enviado
+        # Read the image from the uploaded file
         image_bytes = await file.read()
         input_image = Image.open(io.BytesIO(image_bytes))
         
-        # Converter para RGB se necessário
+        # Convert to RGB if necessary
         if input_image.mode != 'RGB':
             input_image = input_image.convert('RGB')
         
-        # Processar a imagem
+        # Process the image
         result_image = bg_remover.remove_background(input_image)
         
-        # Converter resultado para bytes
+        # Convert result to bytes
         output_buffer = io.BytesIO()
         result_image.save(output_buffer, format='PNG')
         output_buffer.seek(0)
@@ -72,7 +72,7 @@ async def remove_background(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Erro ao processar a imagem: {str(e)}"
+            detail=f"Error processing the image: {str(e)}"
         )
 
 if __name__ == "__main__":
