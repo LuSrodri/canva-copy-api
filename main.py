@@ -2,25 +2,19 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 import io
+import os
 from PIL import Image
 from background_remover import BackgroundRemover
 
-# Initialize FastAPI application without documentation
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-# CORS - disabled by default, but ready for configuration
-# Uncomment the lines below if you need to enable CORS
-"""
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure os origins permitidos
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-"""
 
-# Initialize the background remover
 bg_remover = BackgroundRemover()
 
 @app.get("/ping")
@@ -43,12 +37,13 @@ async def remove_background(file: UploadFile = File(...)):
     if not file.content_type.startswith('image/'):
         raise HTTPException(
             status_code=400, 
-            detail="File must be an image (PNG, JPG, JPEG)"
+            detail="File must be an image (WEBP, PNG, JPG, JPEG)"
         )
     
     try:
         # Read the image from the uploaded file
         image_bytes = await file.read()
+        file_name = os.path.splitext(file.filename)[0]
         input_image = Image.open(io.BytesIO(image_bytes))
         
         # Convert to RGB if necessary
@@ -66,7 +61,7 @@ async def remove_background(file: UploadFile = File(...)):
         return Response(
             content=output_buffer.getvalue(),
             media_type="image/png",
-            headers={"Content-Disposition": "attachment; filename=no_background.png"}
+            headers={"Content-Disposition": f"attachment; filename={file_name}.png"}
         )
         
     except Exception as e:
@@ -74,7 +69,3 @@ async def remove_background(file: UploadFile = File(...)):
             status_code=500,
             detail=f"Error processing the image: {str(e)}"
         )
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
