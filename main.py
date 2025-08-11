@@ -20,7 +20,7 @@ bg_remover = BackgroundRemover()
 @app.get("/ping")
 async def ping():
     """Health check endpoint"""
-    return {"status": "ok", "message": "Background Free API is running"}
+    return {"status": "ok", "message": "I Hate Background API is running"}
 
 @app.post("/remove-background")
 async def remove_background(file: UploadFile = File(...)):
@@ -28,7 +28,7 @@ async def remove_background(file: UploadFile = File(...)):
     Remove the background from an image
     
     Args:
-        file: Image file (PNG, JPG, JPEG)
+        file: Image file (WEBP, PNG, JPG, JPEG)
     
     Returns:
         Image with removed background in PNG format
