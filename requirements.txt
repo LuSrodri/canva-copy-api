@@ -5,3 +5,4 @@ kornia
 transformers
 fastapi[standard]
 timm
+einops

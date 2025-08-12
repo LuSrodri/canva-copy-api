@@ -7,7 +7,7 @@ class BackgroundRemover:
     def __init__(self):
         """Initialize the model for background remover"""
         # Load the model
-        self.model_name = "briaai/RMBG-2.0"
+        self.model_name = "ZhengPeng7/BiRefNet-matting"
         print(f"Loading local model from {self.model_name}...")
         self.model = AutoModelForImageSegmentation.from_pretrained(
             self.model_name, 
