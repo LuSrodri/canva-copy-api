@@ -4,12 +4,14 @@ Uma API REST poderosa para remoção automática de fundos de imagens usando int
 
 ## ✨ Características
 
-- 🤖 **Remoção automática de fundo** com IA de última geração (RMBG-2.0)
+- 🤖 **Remoção automática de fundo** com IA de última geração (BiRefNet-matting)
 - 📁 **Múltiplos formatos** suportados: WEBP, PNG, JPG, JPEG
 - ⚡ **Detecção automática de GPU** (fallback para CPU quando necessário)
 - 🚀 **API REST simples e rápida** com FastAPI
 - 🎯 **Alta qualidade** com redimensionamento para 1024x1024
 - 🔧 **Fácil de usar** com apenas um endpoint
+- 🐳 **Suporte ao Docker** para deploy fácil
+- 🔒 **CORS habilitado** para uso em aplicações web
 
 ## 🛠️ Instalação e Execução
 
@@ -17,12 +19,13 @@ Uma API REST poderosa para remoção automática de fundos de imagens usando int
 
 - **Python 3.10+**
 - **CUDA** (opcional, para aceleração GPU)
-- **Token do Hugging Face** ([obter aqui](https://huggingface.co/settings/tokens))
+- **Git** (para clone do repositório)
 
 ### 🚀 Configuração Rápida
 
 1. **Clone e acesse o diretório:**
 ```bash
+git clone https://github.com/lusrodri/canva-copy-api.git
 cd canva-copy-api
 ```
 
@@ -41,34 +44,33 @@ source env/bin/activate
 3. **Instale as dependências:**
 ```bash
 pip install -r requirements.txt
-pip install -U "huggingface_hub[cli]"
 ```
 
-4. **Configure o token do Hugging Face:**
-```bash
-# Opção 1: Login interativo
-hf auth login
-
-# Opção 2: Com token direto (substitua YOUR_TOKEN)
-hf auth login --token YOUR_TOKEN
-
-# Opção 3: Variável de ambiente (Windows)
-set HF_TOKEN=your_token_here
-hf auth login --token %HF_TOKEN%
-```
-
-5. **Execute a API:**
+4. **Execute a API:**
 ```bash
 fastapi run main.py
 ```
 
 A API estará disponível em: `http://localhost:8000`
 
+### 🐳 Executando com Docker
+
+1. **Build da imagem:**
+```bash
+docker build -t canva-copy-api .
+```
+
+2. **Execute o container:**
+```bash
+docker run -p 8000:8000 canva-copy-api
+```
+
 ### 🤖 Modelo de IA
 
-- **Modelo:** `briaai/RMBG-2.0` (carregado automaticamente do Hugging Face)
-- **Qualidade:** Estado da arte em remoção de fundos
-- **Tamanho:** ~1.7GB (download automático na primeira execução)
+- **Modelo:** `ZhengPeng7/BiRefNet-matting` (carregado automaticamente do Hugging Face)
+- **Qualidade:** Estado da arte em remoção de fundos com matting refinado
+- **Tamanho:** ~600MB (download automático na primeira execução)
+- **Tecnologia:** BiRefNet com suporte a matting para bordas mais suaves
 
 ## 📡 API Endpoints
 
@@ -130,7 +132,7 @@ python test_bg_remover.py
 
 ## ⚙️ Como Funciona?
 
-O `BackgroundRemover` utiliza o modelo **RMBG-2.0** da Bria AI e segue este fluxo:
+O `BackgroundRemover` utiliza o modelo **BiRefNet-matting** e segue este fluxo:
 
 1. **📥 Pré-processamento:**
    - Redimensionamento para 1024x1024 pixels
@@ -138,19 +140,21 @@ O `BackgroundRemover` utiliza o modelo **RMBG-2.0** da Bria AI e segue este flux
    - Conversão para tensor PyTorch
 
 2. **🧠 Predição:**
-   - Processamento com modelo de segmentação
+   - Processamento com modelo de segmentação BiRefNet
    - Aplicação de função sigmoid na saída
    - Detecção automática de dispositivo (GPU/CPU)
 
 3. **📤 Pós-processamento:**
    - Conversão da máscara para PIL Image
+   - Redimensionamento da máscara para tamanho original
    - Aplicação como canal alpha (transparência)
-   - Preservação da qualidade original
+   - Preservação da qualidade e dimensões originais
 
 4. **🎯 Otimizações:**
    - Precisão float32 otimizada
    - Cache do modelo carregado
    - Processamento em lote eficiente
+   - Matting refinado para bordas mais suaves
 
 ## 🔧 Troubleshooting
 
@@ -166,7 +170,7 @@ RuntimeError: CUDA out of memory
 ```
 HTTPError: 401 Client Error: Unauthorized
 ```
-**✅ Solução:** Verifique se o token está correto: `hf auth whoami`
+**✅ Solução:** O modelo BiRefNet não requer autenticação. Verifique se o modelo está sendo baixado corretamente.
 
 **❌ Erro de dependências:**
 ```
@@ -180,17 +184,94 @@ RuntimeError: [enforce fail at alloc_cpu.cpp]
 ```
 **✅ Solução:** Reduza o tamanho da imagem ou use uma máquina com mais RAM
 
+**❌ Erro de modelo não encontrado:**
+```
+OSError: ZhengPeng7/BiRefNet-matting does not appear to be a repository
+```
+**✅ Solução:** Verifique sua conexão com a internet. O modelo será baixado automaticamente na primeira execução.
+
 ## 📋 Requisitos do Sistema
 
 - **RAM:** Mínimo 4GB, recomendado 8GB+
-- **Espaço:** ~3GB livres (modelo + dependências)
+- **Espaço:** ~2GB livres (modelo + dependências)
 - **GPU:** Opcional (NVIDIA com CUDA 11.8+)
 - **Rede:** Conexão para download inicial do modelo
+- **Python:** Versão 3.10 ou superior
+
+## 🛠️ Stack Tecnológica
+
+- **FastAPI** - Framework web moderno e rápido
+- **PyTorch** - Deep learning framework
+- **Transformers** - Biblioteca Hugging Face para modelos
+- **Pillow** - Processamento de imagens
+- **BiRefNet** - Modelo estado da arte para remoção de fundo
+- **Docker** - Containerização para deploy
+
+## 🚀 Deploy
+
+### Variáveis de Ambiente
+
+O projeto não requer variáveis de ambiente específicas, mas você pode configurar:
+
+```bash
+# Opcional: forçar uso de CPU
+export CUDA_VISIBLE_DEVICES=""
+
+# Opcional: definir cache do Hugging Face
+export HF_HOME=/path/to/cache
+```
+
+### Deploy com Docker
+
+```bash
+# Build
+docker build -t canva-copy-api .
+
+# Run em produção
+docker run -d -p 8000:8000 --name bg-remover canva-copy-api
+```
+
+## 🧪 Testes
+
+Execute os testes unitários:
+
+```bash
+python test_bg_remover.py
+```
+
+## 📊 Performance
+
+- **Tempo médio:** 2-5 segundos por imagem (dependendo do hardware)
+- **GPU recomendada:** RTX 3060 ou superior
+- **CPU fallback:** Funcional, porém mais lento (10-30 segundos)
+- **Tamanho máximo recomendado:** 4096x4096 pixels
 
 ## 🤝 Contribuição
 
 1. Fork o projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## 🙏 Agradecimentos
+
+- [ZhengPeng7/BiRefNet](https://github.com/ZhengPeng7/BiRefNet) - Modelo de segmentação de alta qualidade
+- [Hugging Face](https://huggingface.co/) - Plataforma de modelos e transformers
+- [FastAPI](https://fastapi.tiangolo.com/) - Framework web moderno para Python
+
+## 📞 Suporte
+
+Se você encontrar algum problema ou tiver sugestões:
+
+1. Verifique se o problema já foi reportado nas [Issues](https://github.com/lusrodri/canva-copy-api/issues)
+2. Se não, crie uma nova issue com detalhes do problema
+3. Para dúvidas gerais, use as [Discussions](https://github.com/lusrodri/canva-copy-api/discussions)
+
+---
+
+**⭐ Se este projeto foi útil para você, considere dar uma estrela no repositório!**
