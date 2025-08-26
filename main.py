@@ -53,9 +53,6 @@ async def remove_background(file: UploadFile = File(...)):
         # Process the image
         result_image = bg_remover.remove_background(input_image)
         
-        # Clear GPU cache after processing to free memory
-        bg_remover.clear_gpu_cache()
-        
         # Convert result to bytes
         output_buffer = io.BytesIO()
         result_image.save(output_buffer, format='PNG')

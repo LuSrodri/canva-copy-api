@@ -14,31 +14,15 @@ class BackgroundRemover:
             trust_remote_code=True
         )
         
-        # L4-specific optimizations
+        # Set precision and device
         torch.set_float32_matmul_precision('high')
-        torch.backends.cudnn.benchmark = True  # Optimize for consistent input sizes
-        torch.backends.cuda.matmul.allow_tf32 = True  # Enable TF32 for L4
-        torch.backends.cudnn.allow_tf32 = True
         
         # Automatically detect device (GPU if available, CPU otherwise)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"Using device: {self.device}")
         
-        # Enable mixed precision for L4
-        self.use_amp = torch.cuda.is_available()
-        self.scaler = torch.cuda.amp.GradScaler() if self.use_amp else None
-        
         self.model.to(self.device)
         self.model.eval()
-        
-        # Compile model for better performance (PyTorch 2.0+)
-        if hasattr(torch, 'compile') and torch.cuda.is_available():
-            try:
-                self.model = torch.compile(self.model, mode='reduce-overhead')
-                print("Model compiled successfully for better performance!")
-            except Exception as e:
-                print(f"Model compilation failed, continuing with standard model: {e}")
-                pass
         
         # Image preprocessing settings
         self.image_size = (1024, 1024)
@@ -68,16 +52,11 @@ class BackgroundRemover:
         original_size = image.size
         
         # Preprocess the image
-        input_tensor = self.transform_image(image).unsqueeze(0).to(self.device, non_blocking=True)
+        input_tensor = self.transform_image(image).unsqueeze(0).to(self.device)
         
-        # Make prediction with automatic mixed precision for L4
+        # Make prediction
         with torch.no_grad():
-            if self.use_amp:
-                with torch.cuda.amp.autocast():
-                    preds = self.model(input_tensor)[-1].sigmoid()
-                    preds = preds.cpu()
-            else:
-                preds = self.model(input_tensor)[-1].sigmoid().cpu()
+            preds = self.model(input_tensor)[-1].sigmoid().cpu()
         
         # Get the mask
         pred = preds[0].squeeze()
@@ -92,14 +71,7 @@ class BackgroundRemover:
         
         return result_image
     
-    def clear_gpu_cache(self):
-        """Clear GPU cache to free memory"""
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            torch.cuda.synchronize()
-    
     def __del__(self):
         """Clean up resources when the object is destroyed"""
         if hasattr(self, 'model'):
             del self.model
-        self.clear_gpu_cache()
